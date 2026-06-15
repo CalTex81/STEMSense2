@@ -1,0 +1,10 @@
+{
+  "name": "STEMSense",
+  "description": "Scan everyday items using your camera to instantly discover their STEM potential and generate personalized hands-on science experiments.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

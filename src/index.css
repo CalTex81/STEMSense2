@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #060b10;
+  --color-bg-surface: #0d1620;
+  --color-border-dark: #1a2530;
+  --color-accent-teal: #2c8b8b;
+  --color-accent-hover: #217373;
+  --color-text-dim: #a0aec0;
+  
+  --font-sans: "Inter", "Helvetica Neue", sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+}
+
+:root {
+  --bg: #060b10;
+  --surface: #0d1620;
+  --border: #1a2530;
+  --teal: #2c8b8b;
+  --teal-glow: rgba(44, 139, 139, 0.45);
+  --teal-dim: rgba(44, 139, 139, 0.15);
+  --text: #ffffff;
+  --muted: #a0aec0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ── Custom Utilities for STEMSense ── */
+
+/* Object Belt Infinite Scroll */
+.belt-wrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 1rem 0;
+  mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+.belt-track {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  width: max-content;
+  animation: belt-scroll 40s linear infinite;
+}
+
+.belt-track:hover {
+  animation-play-state: paused;
+}
+
+.belt-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  cursor: default;
+}
+
+.belt-item:hover {
+  opacity: 1;
+  transform: scale(1.1) translateY(-6px);
+}
+
+.belt-svg-wrap {
+  height: 60px;
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 5px rgba(44, 139, 139, 0.3));
+}
+
+.belt-svg-wrap svg {
+  height: 60px;
+  width: auto;
+}
+
+@keyframes belt-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Custom Scanning sweep */
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  box-shadow: 0 0 8px var(--teal-glow);
+  animation: scan-sweep 2.8s ease-in-out infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes scan-sweep {
+  0% {
+    top: 4%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    top: 96%;
+    opacity: 0;
+  }
+}
+
+/* Status dots pulsing */
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 6px #2ecc71;
+  }
+  50% {
+    box-shadow: 0 0 12px #2ecc71;
+  }
+}
+
+.status-dot-live {
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Bounding box flash keyframe */
+@keyframes border-flash {
+  0%, 100% { border-color: rgba(44, 139, 139, 0.8); }
+  50% { border-color: rgba(44, 139, 139, 0.3); }
+}
+
+.camera-box-flash {
+  animation: border-flash 1s infinite;
+}

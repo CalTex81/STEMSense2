@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STEMSense Experiments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #060b10;
+      --surface: #0d1620;
+      --border: #1a2530;
+      --teal: #2c8b8b;
+      --text: #ffffff;
+      --muted: #a0aec0;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 1.5rem; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; margin-bottom: 1rem; }
+    .status { margin-bottom: 1.25rem; color: var(--muted); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { margin: 0 0 0.75rem; color: var(--teal); }
+    .card ol { margin: 0; padding-left: 1.2rem; }
+    .card li { margin-bottom: 0.75rem; }
+    .note { color: var(--muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .error { color: #ff6b6b; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+    .button { border: none; border-radius: 10px; padding: 0.85rem 1.1rem; font-weight: 700; cursor: pointer; background: var(--teal); color: var(--bg); }
+    .button.secondary { background: transparent; border: 1px solid var(--teal); color: var(--text); }
+    .json-output { white-space: pre-wrap; word-break: break-word; font-family: monospace; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Generating STEM experiments…</h1>
+    <div class="status" id="status">Waiting for data from the scanner page.</div>
+    <div id="results"></div>
+    <div class="button-row">
+      <button class="button secondary" id="retryBtn">Retry</button>
+      <button class="button" id="backBtn">Back to Scanner</button>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const retryBtn = document.getElementById('retryBtn');
+    const backBtn = document.getElementById('backBtn');
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function renderError(message) {
+      statusEl.textContent = 'Error generating experiments.';
+      resultsEl.innerHTML = `<div class="card error">${escapeHtml(message)}</div>`;
+    }
+
+    async function fetchExperiments(payload) {
+      try {
+        const res = await fetch(payload.analyzeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload.request),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`LLM request failed: ${res.status} ${errText}`);
+        }
+        const data = await res.json();
+        return data;
+      } catch (err) {
+        throw err;
+      }
+    }
+
+    async function init() {
+      const payloadJson = localStorage.getItem('stemsense_llm_payload');
+      if (!payloadJson) {
+        renderError('No payload found. Please use the scanner page to start experiment generation.');
+        return;
+      }
+      const payload = JSON.parse(payloadJson);
+      statusEl.textContent = 'Generating experiments from the LLM...';
+      try {
+        const data = await fetchExperiments(payload);
+        const plan = data.experimentPlan;
+        const title = plan?.title || 'STEM Experiments';
+        const experiments = plan?.experiments || [];
+
+        statusEl.textContent = 'Experiments generated successfully.';
+        resultsEl.innerHTML = `
+          <div class="card">
+            <h2>${escapeHtml(title)}</h2>
+            <div class="note">Generated using ${escapeHtml(payload.request.provider || 'LLM')}.</div>
+            ${experiments.map((exp, idx) => `
+              <div style="margin-bottom:1.1rem;">
+                <h3 style="margin:0 0 0.5rem; color: var(--text);">${idx + 1}. ${escapeHtml(exp.name || `Experiment ${idx+1}`)}</h3>
+                <p style="margin:0 0 0.5rem; color: var(--muted);">Goal: ${escapeHtml(exp.learningGoal || '')}</p>
+                <strong style="display:block; margin-bottom:0.35rem;">Steps:</strong>
+                <ol style="margin:0; padding-left:1.2rem; color: var(--text);">
+                  ${((exp.steps || []).map(step => `<li style="margin-bottom:0.5rem;">${escapeHtml(step)}</li>`).join(''))}
+                </ol>
+              </div>
+            `).join('')}
+          </div>
+          <div class="card">
+            <h2>Raw JSON output</h2>
+            <div class="json-output">${escapeHtml(JSON.stringify(plan, null, 2))}</div>
+          </div>
+        `;
+      } catch (err) {
+        renderError(err.message || 'Unknown error.');
+      }
+    }
+
+    retryBtn.addEventListener('click', () => {
+      localStorage.removeItem('stemsense_llm_payload');
+      window.location.href = 'scan.html';
+    });
+
+    backBtn.addEventListener('click', () => {
+      window.location.href = 'scan.html';
+    });
+
+    init();
+  </script>
+</body>
+</html>

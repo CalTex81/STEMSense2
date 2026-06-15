@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEMSense Backend Test</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #060b10;
+            color: #ffffff;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c8b8b;
+            margin-bottom: 1.5rem;
+        }
+        .test-box {
+            background: #0d1620;
+            border: 1px solid #1a2530;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .port-test {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #1a2530;
+            border-radius: 4px;
+        }
+        .status {
+            font-weight: 600;
+            min-width: 80px;
+        }
+        .status.ok { color: #00d97e; }
+        .status.checking { color: #fbbf24; }
+        .status.error { color: #ef4444; }
+        button {
+            background: #2c8b8b;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background: #1f6666;
+        }
+        .log {
+            background: #060b10;
+            border: 1px solid #1a2530;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+        }
+        .log-ok { color: #00d97e; }
+        .log-warn { color: #fbbf24; }
+        .log-error { color: #ef4444; }
+        code {
+            background: #1a2530;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 STEMSense Backend Diagnostics</h1>
+    
+    <div class="test-box">
+        <h2>Backend Port Scan</h2>
+        <div id="portTests"></div>
+        <button onclick="runPortScan()">Re-scan Ports</button>
+    </div>
+    
+    <div class="test-box">
+        <h2>Health Check</h2>
+        <div id="healthResult" style="padding: 1rem; background: #1a2530; border-radius: 4px; margin-bottom: 1rem;">
+            Waiting...
+        </div>
+        <button onclick="checkHealth()">Check Health</button>
+    </div>
+    
+    <div class="test-box">
+        <h2>Troubleshooting Guide</h2>
+        <ul style="line-height: 1.8;">
+            <li><strong>Server won't start:</strong> Check if port 8000 is already in use (netstat -ano | findstr :8000)</li>
+            <li><strong>Backend found but offline:</strong> Check Python venv is activated</li>
+            <li><strong>CORS errors:</strong> Make sure uvicorn is installed (pip install uvicorn)</li>
+            <li><strong>Still can't connect:</strong> Try running on different port manually:
+                <br><code>uvicorn backend.server:app --port 8001</code>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="test-box">
+        <h2>Console Log</h2>
+        <div class="log" id="logOutput"></div>
+    </div>
+
+    <script>
+        const log = (msg, type = 'info') => {
+            const logDiv = document.getElementById('logOutput');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+
+        async function runPortScan() {
+            log('Starting port scan...', 'warn');
+            const portsDiv = document.getElementById('portTests');
+            portsDiv.innerHTML = '';
+            
+            const PORTS = [8000, 8001, 8002, 8003, 8004, 8005];
+            
+            for (const port of PORTS) {
+                const test = document.createElement('div');
+                test.className = 'port-test';
+                test.innerHTML = `<div>Port ${port}</div><div class="status checking">Checking...</div>`;
+                portsDiv.appendChild(test);
+                
+                try {
+                    const response = await Promise.race([
+                        fetch(`http://localhost:${port}/health`, { mode: 'cors' }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000))
+                    ]);
+                    
+                    if (response.ok) {
+                        test.querySelector('.status').textContent = '✅ ONLINE';
+                        test.querySelector('.status').className = 'status ok';
+                        log(`✅ Backend found on port ${port}`, 'ok');
+                    } else {
+                        test.querySelector('.status').textContent = '❌ No response';
+                        test.querySelector('.status').className = 'status error';
+                    }
+                } catch (err) {
+                    test.querySelector('.status').textContent = '❌ Offline';
+                    test.querySelector('.status').className = 'status error';
+                }
+            }
+        }
+
+        async function checkHealth() {
+            log('Checking backend health...', 'warn');
+            const result = document.getElementById('healthResult');
+            
+            try {
+                // Try common ports
+                for (const port of [8000, 8001, 8002, 8003, 8004, 8005]) {
+                    try {
+                        const response = await Promise.race([
+                            fetch(`http://localhost:${port}/health`, { mode: 'cors' }),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000))
+                        ]);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            result.innerHTML = `
+                                <strong style="color: #00d97e;">✅ Backend is healthy!</strong><br>
+                                Port: <code>${port}</code><br>
+                                Status: ${data.status}<br>
+                                Model: ${data.model}
+                            `;
+                            log(`✅ Backend health OK on port ${port}`, 'ok');
+                            return;
+                        }
+                    } catch (err) {
+                        continue;
+                    }
+                }
+                
+                result.innerHTML = `
+                    <strong style="color: #ef4444;">❌ Backend not responding</strong><br>
+                    Make sure the server is running:<br>
+                    <code style="display: block; margin-top: 0.5rem;">python backend/server.py</code>
+                `;
+                log('❌ Backend not found on any port', 'error');
+            } catch (err) {
+                result.innerHTML = `<strong style="color: #ef4444;">Error: ${err.message}</strong>`;
+                log(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // Run initial scan on page load
+        window.addEventListener('load', () => {
+            runPortScan();
+            checkHealth();
+        });
+    </script>
+</body>
+</html>

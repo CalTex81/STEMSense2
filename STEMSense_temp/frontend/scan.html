@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scan Object – StemSense</title>
+  <meta name="description" content="Point your camera at any object to discover the STEM concepts behind it.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #060b10;
+      --surface: #0d1620;
+      --border: #1a2530;
+      --teal: #2c8b8b;
+      --teal-glow: rgba(44, 139, 139, 0.45);
+      --teal-dim: rgba(44, 139, 139, 0.15);
+      --text: #ffffff;
+      --muted: #a0aec0;
+    }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .back-btn:hover {
+      color: var(--teal);
+    }
+
+    .logo-mark {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-mark span {
+      color: var(--teal);
+    }
+
+    .header-spacer {
+      width: 80px;
+    }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 2.5rem;
+      gap: 1.25rem;
+    }
+
+    .scan-heading {
+      text-align: center;
+    }
+
+    .scan-heading h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.3rem;
+    }
+
+    .scan-heading p {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* ── Status pill ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+
+    .status-dot.connecting {
+      background: #f0a500;
+      box-shadow: 0 0 6px #f0a500;
+    }
+
+    .status-dot.live {
+      background: #2ecc71;
+      box-shadow: 0 0 6px #2ecc71;
+      animation: pulse-dot 1.5s infinite;
+    }
+
+    .status-dot.error {
+      background: #e74c3c;
+      box-shadow: 0 0 6px #e74c3c;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        box-shadow: 0 0 6px #2ecc71;
+      }
+
+      50% {
+        box-shadow: 0 0 12px #2ecc71;
+      }
+    }
+
+    .status-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Viewfinder ── */
+    .viewfinder-wrap {
+      position: relative;
+      width: min(640px, 96vw);
+    }
+
+    .viewfinder {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: 0 0 40px rgba(44, 139, 139, 0.18), 0 0 0 1px var(--border);
+    }
+
+    #camera-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(var(--mirror, 1));
+      /* mirror front cam */
+    }
+
+    /* Detection overlay canvas */
+    #detection-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Corner brackets */
+    .corner {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-color: var(--teal);
+      border-style: solid;
+      z-index: 3;
+      opacity: 0.75;
+      pointer-events: none;
+    }
+
+    .corner.tl {
+      top: 10px;
+      left: 10px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .corner.tr {
+      top: 10px;
+      right: 10px;
+      border-width: 2px 2px 0 0;
+    }
+
+    .corner.bl {
+      bottom: 10px;
+      left: 10px;
+      border-width: 0 0 2px 2px;
+    }
+
+    .corner.br {
+      bottom: 10px;
+      right: 10px;
+      border-width: 0 2px 2px 0;
+    }
+
+    /* Scanning line */
+    .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      box-shadow: 0 0 8px var(--teal-glow);
+      animation: scan-sweep 2.8s ease-in-out infinite;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    @keyframes scan-sweep {
+      0% {
+        top: 4%;
+        opacity: 0;
+      }
+
+      8% {
+        opacity: 1;
+      }
+
+      92% {
+        opacity: 1;
+      }
+
+      100% {
+        top: 96%;
+        opacity: 0;
+      }
+    }
+
+    /* Placeholder */
+    .cam-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      background: var(--surface);
+      z-index: 5;
+    }
+
+    .cam-placeholder i {
+      font-size: 2.5rem;
+      color: var(--teal);
+      opacity: 0.6;
+    }
+
+    .cam-placeholder p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 220px;
+    }
+
+    /* Permission error */
+    .perm-error {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.65rem;
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    .perm-error i {
+      font-size: 1.8rem;
+      color: #e74c3c;
+    }
+
+    .perm-error p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      max-width: 280px;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .ctrl-btn {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .ctrl-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .ctrl-btn.active {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* Start Scan Button */
+    .start-scan-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      background: var(--teal);
+      border: none;
+      color: var(--text);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      font-size: 1.8rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 24px var(--teal-glow);
+    }
+
+    .start-scan-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 0 40px var(--teal-glow);
+    }
+
+    .start-scan-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Scanning Timer */
+    .scan-timer {
+      text-align: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: -0.02em;
+      animation: timer-pulse 1s infinite;
+    }
+
+    @keyframes timer-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .scanning-status {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    /* Modal */
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 500px;
+      width: min(500px, 90vw);
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: modal-in 0.3s ease;
+    }
+
+    @keyframes modal-in {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .modal h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--teal);
+    }
+
+    .modal-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .modal-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(44, 139, 139, 0.12);
+      border: 1px solid rgba(44, 139, 139, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      animation: item-in 0.2s ease;
+    }
+
+    @keyframes item-in {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .modal-item input[type="text"] {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .modal-item button {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+
+    .modal-item button:hover {
+      color: #ff6b6b;
+    }
+
+    .add-item-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .add-item-form input {
+      flex: 1;
+      background: rgba(44, 139, 139, 0.12);
+      border: 1px solid rgba(44, 139, 139, 0.3);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+    }
+
+    .add-item-form input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 12px rgba(44, 139, 139, 0.3);
+    }
+
+    .add-item-form button {
+      background: rgba(44, 139, 139, 0.2);
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-weight: 600;
+    }
+
+    .add-item-form button:hover {
+      background: rgba(44, 139, 139, 0.3);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 0.7rem 1.5rem;
+      border-radius: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .modal-btn.cancel {
+      background: rgba(200, 200, 200, 0.1);
+      color: var(--muted);
+    }
+
+    .modal-btn.cancel:hover {
+      background: rgba(200, 200, 200, 0.2);
+    }
+
+    .modal-btn.accept {
+      background: var(--teal);
+      color: white;
+      box-shadow: 0 0 12px var(--teal-glow);
+    }
+
+    .modal-btn.accept:hover {
+      box-shadow: 0 0 20px var(--teal-glow);
+    }
+
+    /* Detection results panel - hidden by default */
+    .results-panel {
+      width: min(640px, 96vw);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: none;
+    }
+
+    .results-panel.active {
+      display: block;
+    }
+
+    .results-panel h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+
+    #detection-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      min-height: 36px;
+    }
+
+    .det-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(44, 139, 139, 0.12);
+      border: 1px solid rgba(44, 139, 139, 0.35);
+      border-radius: 9999px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.82rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: var(--text);
+      animation: chip-in 0.2s ease;
+    }
+
+    @keyframes chip-in {
+      from {
+        opacity: 0;
+        transform: scale(0.85);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .det-chip .conf {
+      font-size: 0.7rem;
+      color: var(--teal);
+      font-weight: 500;
+    }
+
+    .no-det {
+      font-size: 0.82rem;
+      color: #444f5a;
+      font-style: italic;
+    }
+
+    /* responsive */
+    @media (max-width: 480px) {
+      header {
+        padding: 0.9rem 1rem;
+      }
+
+      .scan-heading h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <a href="index.html" class="back-btn" id="back-to-home">
+      <i class="fa-solid fa-arrow-left"></i> Back
+    </a>
+    <div class="logo-mark">Stem<span>Sense</span></div>
+    <div class="header-spacer"></div>
+  </header>
+
+  <main>
+    <div class="scan-heading">
+      <h1>Scan Your Object</h1>
+      <p>Point your camera at any object — detection happens in real time.</p>
+    </div>
+
+    <!-- Status indicator -->
+    <div class="status-row">
+      <div class="status-dot connecting" id="status-dot"></div>
+      <span class="status-label" id="status-label">CONNECTING…</span>
+    </div>
+
+    <!-- Viewfinder -->
+    <div class="viewfinder-wrap">
+      <div class="viewfinder" id="viewfinder">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <canvas id="detection-canvas"></canvas>
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="scan-line" id="scan-line"></div>
+        <div class="cam-placeholder" id="cam-placeholder">
+          <i class="fa-solid fa-camera"></i>
+          <p id="placeholder-text">Requesting camera access…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permission error -->
+    <div class="perm-error" id="perm-error">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <p>Camera access was denied. Please allow camera permissions and reload.</p>
+      <button class="toggle-detect-btn" onclick="location.reload()">
+        <i class="fa-solid fa-rotate-right"></i> Reload
+      </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls" id="controls" style="flex-direction: column; gap: 1.5rem;">
+      <button class="start-scan-btn" id="start-btn" title="Start 10-second scan">
+        <i class="fa-solid fa-camera"></i>
+      </button>
+      <div class="scan-timer" id="scan-timer" style="display: none;">10</div>
+      <div class="scanning-status" id="scanning-status" style="display: none;">Scanning...</div>
+    </div>
+
+    <!-- Results Panel - Hidden until scan completes -->
+    <div class="results-panel" id="results-panel">
+      <h2><i class="fa-solid fa-crosshairs" style="margin-right:0.4rem;"></i>Detection Summary</h2>
+      <div id="detection-list">
+        <span class="no-det">No objects detected</span>
+      </div>
+    </div>
+
+    <!-- Modal for reviewing detections -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal" id="detection-modal">
+        <h2>✅ Scan Complete</h2>
+        <p style="color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem;">
+          Review and confirm the detected objects below. You can add or remove items as needed.
+        </p>
+
+        <!-- Detected items list -->
+        <div class="modal-items" id="modal-items"></div>
+
+        <!-- Add new item form -->
+        <div class="add-item-form">
+          <input type="text" id="new-item-input" placeholder="Add another object...">
+          <button onclick="addItemToList()">Add</button>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="modal-buttons" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+          <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+            <button class="modal-btn cancel" onclick="closeScanModal()">Cancel</button>
+            <button class="modal-btn accept" onclick="acceptAndStoreListAndAnalyze()">Accept & Generate Experiments</button>
+          </div>
+
+          <div style="background: rgba(44,139,139,0.08); border: 1px solid rgba(44,139,139,0.25); border-radius: 12px; padding: 0.9rem;">
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+              <div style="flex:1; min-width: 160px;">
+                <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Provider</div>
+                <select id="llm-provider" style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none;">
+                  <option value="gemini" selected>Gemini</option>
+                  <option value="deepseek">DeepSeek</option>
+                </select>
+              </div>
+
+              <div style="flex:1.2; min-width: 220px;">
+                <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">API Key (DeepSeek only)</div>
+                <input id="llm-api-key" type="password" placeholder="Paste your DeepSeek API key" style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none;"/>
+                <div id="llm-api-key-note" style="margin-top:0.35rem; color: var(--muted); font-size:0.75rem;">Gemini uses the server-side key; DeepSeek requires your own key.</div>
+              </div>
+            </div>
+
+            <div style="margin-top:0.75rem;">
+              <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Custom prompt (optional)</div>
+              <textarea id="llm-custom-prompt" rows="3" placeholder="E.g., Make it kid-friendly, include a safety checklist, focus on chemistry." style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none; resize: vertical;"></textarea>
+            </div>
+
+            <div style="margin-top:0.75rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+              <div style="flex:1; min-width: 160px;">
+                <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Audience</div>
+                <input id="llm-audience" type="text" placeholder="kids / teens / adults" style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none;"/>
+              </div>
+              <div style="flex:1; min-width: 160px;">
+                <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Time limit (minutes)</div>
+                <input id="llm-time-limit" type="number" placeholder="e.g., 30" min="1" style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none;"/>
+              </div>
+              <div style="flex:1; min-width: 220px;">
+                <div style="font-family:'Space Grotesk',sans-serif; color: var(--teal); font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Materials available</div>
+                <input id="llm-materials" type="text" placeholder="e.g., vinegar, baking soda" style="width:100%; background: rgba(44,139,139,0.12); border: 1px solid rgba(44,139,139,0.3); color: var(--text); border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'Inter', sans-serif; outline:none;"/>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <canvas id="capture-canvas" style="display:none;"></canvas>
+
+  <script>
+    // Global variables for scan workflow
+    let currentDetectedItems = [];
+    let scanInProgress = false;
+    let API_URL = 'http://localhost:8000/detect'; // exposed globally so acceptAndStoreListAndAnalyze can read it
+
+    (function () {
+      /* ── Config ────────────────────────────────────────────────── */
+      let HEALTH_URL = 'http://localhost:8000/health';
+      const SCAN_DURATION = 10000; // 10 seconds
+      const DETECTION_FPS = 4; // 4 frames per second during scan
+      let facingMode = 'environment';
+      let currentStream = null;
+      let backendOk = false;
+      let detectTimer = null;
+
+      /* ── Auto-detect backend port ──────────────────────────────── */
+      async function findBackendPort() {
+        const PORTS_TO_TRY = [8000, 8001, 8002, 8003, 8004, 8005];
+        console.log('🔍 Searching for backend on ports:', PORTS_TO_TRY);
+        
+        for (const port of PORTS_TO_TRY) {
+          try {
+            const url = `http://localhost:${port}/health`;
+            console.log(`  → Trying port ${port}...`);
+            
+            // Fetch with a manual timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            
+            try {
+              const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'omit',
+                signal: controller.signal
+              });
+              
+              clearTimeout(timeoutId);
+              
+              if (response.ok) {
+                console.log(`✅ FOUND! Backend is on port ${port}`);
+                API_URL = `http://localhost:${port}/detect`;
+                HEALTH_URL = `http://localhost:${port}/health`;
+                return port;
+              }
+            } catch (fetchErr) {
+              clearTimeout(timeoutId);
+              throw fetchErr;
+            }
+          } catch (err) {
+            const errMsg = err.name === 'AbortError' ? 'timeout' : (err.message || 'error');
+            console.log(`  ✗ Port ${port}: ${errMsg}`);
+          }
+        }
+        
+        console.error('❌ Backend NOT FOUND on any port (tried 8000-8005)');
+        console.error('📍 Please start the server: python backend/server.py');
+        return null;
+      }
+
+      /* ── DOM refs ──────────────────────────────────────────────── */
+      const video = document.getElementById('camera-video');
+      const overlay = document.getElementById('detection-canvas');
+      const ctx = overlay.getContext('2d');
+      const captureCanvas = document.getElementById('capture-canvas');
+      const capCtx = captureCanvas.getContext('2d');
+      const placeholder = document.getElementById('cam-placeholder');
+      const placeholderTxt = document.getElementById('placeholder-text');
+      const permError = document.getElementById('perm-error');
+      const statusDot = document.getElementById('status-dot');
+      const statusLabel = document.getElementById('status-label');
+      const detList = document.getElementById('detection-list');
+
+      /* ── Status helpers ────────────────────────────────────────── */
+      function setStatus(state, text) {
+        statusDot.className = 'status-dot ' + state;
+        statusLabel.textContent = text;
+      }
+
+      /* ── Backend health check ──────────────────────────────────── */
+      async function checkBackend() {
+        try {
+          console.log(`💚 Checking health at ${HEALTH_URL}`);
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          
+          try {
+            const r = await fetch(HEALTH_URL, {
+              method: 'GET',
+              mode: 'cors',
+              credentials: 'omit',
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (r.ok) {
+              const data = await r.json();
+              console.log('✅ Backend is healthy:', data);
+              backendOk = true;
+              return true;
+            }
+          } catch (fetchErr) {
+            clearTimeout(timeoutId);
+            throw fetchErr;
+          }
+        } catch (err) {
+          console.error('❌ Backend check failed:', err.name === 'AbortError' ? 'timeout' : err.message);
+        }
+        backendOk = false;
+        return false;
+      }
+
+      /* ── Camera ────────────────────────────────────────────────── */
+      async function startCamera(facing) {
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        video.style.setProperty('--mirror', facing === 'user' ? '-1' : '1');
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 960 } },
+            audio: false,
+          });
+          currentStream = stream;
+          video.srcObject = stream;
+          await video.play();
+          placeholder.style.display = 'none';
+          permError.style.display = 'none';
+        } catch (err) {
+          placeholder.style.display = 'none';
+          permError.style.display = 'flex';
+          document.getElementById('controls').style.display = 'none';
+          setStatus('error', 'NO CAMERA');
+          console.error(err);
+        }
+      }
+
+      /* ── Capture a JPEG blob from the video ────────────────────── */
+      function captureBlob() {
+        return new Promise(resolve => {
+          const w = video.videoWidth || 640;
+          const h = video.videoHeight || 480;
+          captureCanvas.width = w;
+          captureCanvas.height = h;
+          // mirror if front camera
+          if (facingMode === 'user') {
+            capCtx.save();
+            capCtx.translate(w, 0);
+            capCtx.scale(-1, 1);
+          }
+          capCtx.drawImage(video, 0, 0, w, h);
+          if (facingMode === 'user') capCtx.restore();
+          captureCanvas.toBlob(resolve, 'image/jpeg', 0.82);
+        });
+      }
+
+      /* ── Draw bounding boxes on overlay canvas ─────────────────── */
+      function drawBoxes(detections) {
+        overlay.width = overlay.offsetWidth;
+        overlay.height = overlay.offsetHeight;
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        const W = overlay.width;
+        const H = overlay.height;
+
+        detections.forEach(det => {
+          const { x, y, w, h } = det.bbox;       // normalised
+          const px = x * W, py = y * H;
+          const pw = w * W, ph = h * H;
+
+          // Box
+          ctx.strokeStyle = '#2c8b8b';
+          ctx.lineWidth = 2;
+          ctx.shadowColor = 'rgba(44,139,139,0.7)';
+          ctx.shadowBlur = 8;
+          ctx.strokeRect(px, py, pw, ph);
+
+          // Label background
+          const label = `${det.label} ${(det.conf * 100).toFixed(0)}%`;
+          ctx.font = '600 12px "Space Grotesk", sans-serif';
+          const tw = ctx.measureText(label).width + 12;
+          const th = 22;
+          const lx = px;
+          const ly = py > th + 2 ? py - th - 2 : py + 2;
+
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(44,139,139,0.85)';
+          ctx.beginPath();
+          ctx.roundRect(lx, ly, tw, th, 4);
+          ctx.fill();
+
+          // Label text
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowBlur = 0;
+          ctx.fillText(label, lx + 6, ly + 15);
+        });
+      }
+
+      /* ── Update detected items list ────────────────────────────── */
+      function updateDetectedItems(detections) {
+        detections.forEach(d => {
+          // Check if item already exists (by label)
+          const exists = currentDetectedItems.find(item => item.label === d.label);
+          if (!exists) {
+            currentDetectedItems.push({
+              label: d.label,
+              conf: d.conf,
+              id: Date.now() + Math.random()
+            });
+          }
+        });
+      }
+
+      /* ── Run single detection frame ──────────────────────────── */
+      async function runDetect() {
+        if (!backendOk || !currentStream || video.readyState < 2) return;
+
+        const blob = await captureBlob();
+        if (!blob) return;
+
+        const form = new FormData();
+        form.append('file', blob, 'frame.jpg');
+
+        try {
+          const res = await fetch(API_URL, { method: 'POST', body: form });
+          const data = await res.json();
+          updateDetectedItems(data.detections);
+          drawBoxes(data.detections);
+        } catch (err) {
+          console.error('Detection error:', err);
+        }
+      }
+
+      /* ── START SCAN: 10 second detection window ──────────────── */
+      async function startScan() {
+        if (scanInProgress || !backendOk) {
+          alert('Backend not ready. Please try again.');
+          return;
+        }
+
+        // Reset state
+        currentDetectedItems = [];
+        scanInProgress = true;
+        
+        // Hide start button, show timer
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('scan-timer').style.display = 'block';
+        document.getElementById('scanning-status').style.display = 'block';
+        document.getElementById('results-panel').classList.remove('active');
+
+        // Countdown timer
+        let remaining = SCAN_DURATION / 1000;
+        const timerDisplay = document.getElementById('scan-timer');
+        
+        const timerInterval = setInterval(() => {
+          timerDisplay.textContent = Math.ceil(remaining);
+          remaining -= 0.1;
+        }, 100);
+
+        // Start detection at specified FPS
+        const detectionInterval = 1000 / DETECTION_FPS;
+        const scanTimer = setInterval(runDetect, detectionInterval);
+
+        // After 10 seconds, stop scanning
+        setTimeout(() => {
+          clearInterval(scanTimer);
+          clearInterval(timerInterval);
+          scanInProgress = false;
+          
+          // Hide timer
+          document.getElementById('scan-timer').style.display = 'none';
+          document.getElementById('scanning-status').style.display = 'none';
+          
+          // Show results and open modal
+          showScanResults();
+        }, SCAN_DURATION);
+      }
+
+      /* ── Display scan results in modal ──────────────────────── */
+      function showScanResults() {
+        console.log('Detected items:', currentDetectedItems);
+        
+        // Clear overlay
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        
+        // Show results panel
+        document.getElementById('results-panel').classList.add('active');
+
+        // Populate detection list
+        if (currentDetectedItems.length === 0) {
+          document.getElementById('detection-list').innerHTML = '<span class="no-det">No objects detected</span>';
+        } else {
+          const unique = {};
+          currentDetectedItems.forEach(item => {
+            if (!unique[item.label] || item.conf > unique[item.label]) {
+              unique[item.label] = item.conf;
+            }
+          });
+          document.getElementById('detection-list').innerHTML = Object.entries(unique)
+            .sort((a, b) => b[1] - a[1])
+            .map(([label, conf]) =>
+              `<span class="det-chip">
+                <i class="fa-solid fa-circle-dot" style="font-size:0.6rem;"></i>
+                ${label}
+                <span class="conf">${(conf * 100).toFixed(0)}%</span>
+              </span>`
+            ).join('');
+        }
+
+        // Populate modal
+        populateModal();
+        
+        // Show modal
+        document.getElementById('modal-overlay').classList.add('active');
+      }
+
+      /* ── Populate modal with current items (inside IIFE scope) ──── */
+      function populateModalInside() {
+        const modalItems = document.getElementById('modal-items');
+        modalItems.innerHTML = '';
+        
+        currentDetectedItems.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'modal-item';
+          div.innerHTML = `
+            <input type="text" value="${item.label}">
+            <button onclick="removeFromList('${item.id}')">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          `;
+          modalItems.appendChild(div);
+        });
+      }
+
+      /* ── Init ──────────────────────────────────────────────────── */
+      async function init() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          placeholderTxt.textContent = 'Camera API not supported in this browser.';
+          setStatus('error', 'UNSUPPORTED');
+          return;
+        }
+
+        setStatus('connecting', 'CONNECTING…');
+        
+        // Auto-detect backend port first
+        console.log('🔍 Searching for backend server...');
+        const detectedPort = await findBackendPort();
+        
+        if (!detectedPort) {
+          setStatus('error', 'BACKEND OFFLINE');
+          document.getElementById('start-btn').disabled = true;
+          return;
+        }
+        
+        await startCamera(facingMode);
+
+        // Check backend connectivity
+        const ok = await checkBackend();
+        if (!ok) {
+          setStatus('error', 'BACKEND OFFLINE');
+          document.getElementById('start-btn').disabled = true;
+        } else {
+          setStatus('live', 'READY');
+          document.getElementById('start-btn').disabled = false;
+        }
+      }
+
+      // Event listener for START button
+      document.getElementById('start-btn').addEventListener('click', startScan);
+
+      init();
+    })();
+
+    // Global functions for modal interaction
+    function removeFromList(itemId) {
+      currentDetectedItems = currentDetectedItems.filter(item => item.id !== itemId);
+      populateModal();
+    }
+
+    function addItemToList() {
+      const input = document.getElementById('new-item-input');
+      const value = input.value.trim();
+      if (!value) return;
+
+      currentDetectedItems.push({
+        label: value,
+        conf: 0.75,
+        id: Date.now() + Math.random()
+      });
+
+      input.value = '';
+      document.querySelector('#modal-items').scrollTop = document.querySelector('#modal-items').scrollHeight;
+      populateModal();
+    }
+
+    function closeScanModal() {
+      document.getElementById('modal-overlay').classList.remove('active');
+      document.getElementById('start-btn').style.display = 'block';
+      currentDetectedItems = [];
+    }
+
+    function acceptAndStoreList() {
+      console.log('✅ Storing list:', currentDetectedItems);
+      
+      // Store in localStorage
+      const itemList = currentDetectedItems.map(item => item.label);
+      localStorage.setItem('detectedItems', JSON.stringify(itemList));
+      
+      // Close modal
+      document.getElementById('modal-overlay').classList.remove('active');
+      
+      // Reset for next scan
+      document.getElementById('start-btn').style.display = 'block';
+      currentDetectedItems = [];
+      
+      // Show success feedback
+      alert(`✅ Stored ${itemList.length} items!`);
+    }
+
+    async function acceptAndStoreListAndAnalyze() {
+      // Store first
+      const itemList = currentDetectedItems.map(item => item.label);
+      localStorage.setItem('detectedItems', JSON.stringify(itemList));
+
+      const provider = document.getElementById('llm-provider')?.value;
+      const apiKey = document.getElementById('llm-api-key')?.value;
+      const customPrompt = document.getElementById('llm-custom-prompt')?.value || '';
+      const audience = document.getElementById('llm-audience')?.value || '';
+      const timeLimit = document.getElementById('llm-time-limit')?.value;
+      const materials = document.getElementById('llm-materials')?.value || '';
+
+      const requiresApiKey = provider === 'deepseek';
+      if (!provider) {
+        alert('Provider is required to generate experiments.');
+        return;
+      }
+      if (requiresApiKey && !apiKey) {
+        alert('DeepSeek requires an API key. Gemini uses the server-side key.');
+        return;
+      }
+      if (!itemList || itemList.length === 0) {
+        alert('No items to analyze.');
+        return;
+      }
+
+      const llmUrl = API_URL.replace('/detect', '/analyze');
+
+      const userData = {
+        audience: audience || undefined,
+        timeLimitMinutes: timeLimit ? Number(timeLimit) : undefined,
+        materialsAvailable: materials || undefined,
+      };
+
+      const payload = {
+        analyzeUrl: llmUrl,
+        request: {
+          provider,
+          customPrompt: customPrompt || 'Generate age-appropriate STEM experiments. Follow the JSON schema.',
+          items: itemList,
+          userData,
+          ...(provider === 'deepseek' ? { apiKey } : {}),
+        },
+      };
+
+      localStorage.setItem('stemsense_llm_payload', JSON.stringify(payload));
+      document.getElementById('modal-overlay').classList.remove('active');
+      currentDetectedItems = [];
+
+      // Navigate to results page in the same tab
+      window.location.href = 'results.html';
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '<')
+        .replaceAll('>', '>')
+        .replaceAll('"', '"')
+        .replaceAll("'", '&#039;');
+    }
+
+    // Helper function for modal - accessible from global scope
+    function populateModal() {
+      const modalItems = document.getElementById('modal-items');
+      modalItems.innerHTML = '';
+      
+      currentDetectedItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'modal-item';
+        div.innerHTML = `
+          <input type="text" value="${item.label}">
+          <button onclick="removeFromList('${item.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+        modalItems.appendChild(div);
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,312 @@
+:root {
+  --bg-color: #060b10;
+  --header-bg: #060b10;
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --accent-teal: #2c8b8b;
+  --accent-hover: #217373;
+  --border-color: #1a2530;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 3rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-svg {
+  width: 48px;
+  height: 48px;
+  color: var(--accent-teal);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ── Scan CTA (centered below belt) ── */
+.scan-cta {
+  display: flex;
+  justify-content: center;
+  margin: 2.5rem 0 1.5rem;
+}
+
+.scan-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(44,139,139,0.15) 0%, rgba(44,139,139,0.05) 100%);
+  color: white;
+  border: 1.5px solid var(--accent-teal);
+  border-radius: 9999px;
+  padding: 1rem 2.5rem;
+  font-size: 1.05rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 18px rgba(44,139,139,0.25), inset 0 0 12px rgba(44,139,139,0.06);
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.scan-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(44,139,139,0.35), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.scan-btn:hover::before {
+  opacity: 1;
+}
+
+.scan-btn:hover {
+  box-shadow: 0 0 32px rgba(44,139,139,0.5), inset 0 0 20px rgba(44,139,139,0.1);
+  transform: translateY(-2px);
+}
+
+.scan-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Main Content ── */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-title {
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 3rem;
+  font-weight: 400;
+}
+
+/* ── Object Belt ── */
+.belt-wrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 1rem 0;
+  /* faded edges */
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.belt-wrapper::before,
+.belt-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  z-index: 1;
+}
+
+.belt-track {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  width: max-content;
+  animation: belt-scroll 40s linear infinite;
+}
+
+.belt-track:hover {
+  animation-play-state: paused;
+}
+
+.belt-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  cursor: default;
+}
+
+.belt-item:hover {
+  opacity: 1;
+  transform: scale(1.1) translateY(-6px);
+}
+
+.belt-img {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(44,139,139,0.35));
+}
+
+.belt-svg-wrap {
+  height: 60px;
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 5px rgba(44,139,139,0.3));
+}
+
+.belt-svg-wrap svg {
+  height: 60px;
+  width: auto;
+}
+
+@keyframes belt-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    /* shift by exactly half (one full set) so the loop is seamless */
+    transform: translateX(-50%);
+  }
+}
+
+/* ── Floating Action Button ── */
+.fab-container {
+  position: absolute;
+  bottom: 2rem;
+  right: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sparkle-icon {
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+}
+
+.fab-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: 3px solid var(--accent-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fab-inner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: 1px solid var(--accent-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-btn:hover {
+  background-color: rgba(44, 139, 139, 0.1);
+  transform: scale(1.05);
+}
+
+/* ── Footer ── */
+.footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.social-icon {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.social-icon:hover {
+  color: var(--accent-teal);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.75rem;
+  }
+
+  .header {
+    padding: 1rem 1.5rem;
+  }
+
+  .fab-container {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .belt-img,
+  .belt-svg-wrap,
+  .belt-svg-wrap svg {
+    height: 44px;
+  }
+
+  .belt-track {
+    gap: 1.5rem;
+  }
+}
